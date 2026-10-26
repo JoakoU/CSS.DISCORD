@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="style.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>CSS.DISCORD</title>
+    </head>
+    <body>
+        <div class="container">
+            <header>
+                <h1>CSS.DISCORD</h1>
+                <p>Pagina de uso personal para configurar cositas de discord</p>
+            </header>
+
+            <div class="main-upload-wrapper" id="mainUploadWrapper">
+                <button
+                    class="btn-global-upload"
+                    id="btnGlobalUpload"
+                    onclick="document.getElementById('globalImgInput').click()"
+                >
+                    Subir imagen para comenzar a editar
+                </button>
+                <input
+                    type="file"
+                    id="globalImgInput"
+                    accept="image/*"
+                    style="display: none"
+                />
+                <span id="globalUploadStatus" class="upload-status"
+                    >Ninguna imagen cargada</span
+                >
+            </div>
+
+            <div class="section-grid">
+                <div class="card">
+                    <h2>Color del Tema CSS</h2>
+
+                    <div class="palettes-container">
+                        <div
+                            class="palette-option active"
+                            onclick="seleccionarPaleta(0, this)"
+                        >
+                            <span class="palette-label">Paleta 1</span>
+                            <div class="preview-dots" id="dots-0"></div>
+                        </div>
+                        <div
+                            class="palette-option"
+                            onclick="seleccionarPaleta(1, this)"
+                        >
+                            <span class="palette-label">Paleta 2</span>
+                            <div class="preview-dots" id="dots-1"></div>
+                        </div>
+                        <div
+                            class="palette-option"
+                            onclick="seleccionarPaleta(2, this)"
+                        >
+                            <span class="palette-label">Paleta 3</span>
+                            <div class="preview-dots" id="dots-2"></div>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Bordes suavizados</span
+                            ><span id="radiusVal">5px</span>
+                        </div>
+                        <input
+                            type="range"
+                            id="radiusSlider"
+                            min="0"
+                            max="20"
+                            value="5"
+                        />
+                    </div>
+
+                    <div class="control-group">
+                        <div class="control-label">
+                            <span>Opacidad del fondo</span
+                            ><span id="opacityVal">85%</span>
+                        </div>
+                        <input
+                            type="range"
+                            id="opacitySlider"
+                            min="0"
+                            max="100"
+                            value="85"
+                        />
+                    </div>
+
+                    <div class="preview-wrapper">
+                        <div class="discord-panel-preview" id="discordPreview">
+                            <div class="discord-user-info">
+                                <div class="discord-avatar-box">
+                                    <img
+                                        src="https://i.imgur.com/83p1Xb1.png"
+                                        id="previewAvatar"
+                                        class="discord-avatar-img"
+                                        alt="Avatar"
+                                    />
+                                    <div class="discord-status"></div>
+                                </div>
+                                <div class="discord-user-details">
+                                    <span class="discord-tag">user</span>
+                                    <span class="discord-username">User</span>
+                                    <span class="discord-activity"
+                                        >Estado de ejemplo</span
+                                    >
+                                </div>
+                            </div>
+                            <div class="discord-controls">
+                                <span>🎙️</span><span>🎧</span><span>⚙️</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="code-accordion">
+                        <button
+                            class="accordion-btn"
+                            onclick="toggleAccordion('accTheme', 'arrowTheme')"
+                        >
+                            <span>Ver codigo del tema</span
+                            ><span id="arrowTheme" class="arrow">▼</span>
+                        </button>
+                        <div id="accTheme" class="accordion-content">
+                            <textarea id="themeOutput" readonly></textarea>
+                        </div>
+                    </div>
+
+                    <button
+                        class="btn-download"
+                        onclick="
+                            descargarArchivo(
+                                'system24-custom.theme.css',
+                                'themeOutput',
+                            )
+                        "
+                    >
+                        Descargar Solo Tema
+                    </button>
+                </div>
+
+                <div class="card">
+                    <h2>Opciones de QuickCSS</h2>
+                    <div class="switch-group">
+                        <div class="switch-item-container">
+                            <div class="switch-item">
+                                <span>Texto custom en perfil</span>
+                                <label class="switch">
+                                    <input
+                                        type="checkbox"
+                                        id="swProfileMsg"
+                                        checked
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <input
+                                type="text"
+                                id="customMsgInput"
+                                class="text-input-sub"
+                                value="Meow :3&#10;(Waiting for something to happen?)"
+                                placeholder="Texto personalizado..."
+                            />
+                            <div class="control-group sub-control">
+                                <div class="control-label">
+                                    <span>Padding/Altura Banner</span
+                                    ><span id="bannerPaddingVal">40px</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    id="bannerPaddingSlider"
+                                    min="10"
+                                    max="100"
+                                    value="40"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="switch-item">
+                            <span>Ocultar boton Nitro</span>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    id="swHideGift"
+                                    checked
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="switch-item">
+                            <span>Ocultar botones extra (Tienda/Llamadas)</span>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    id="swHideButtons"
+                                    checked
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="switch-item">
+                            <span>Ocultar superreacciones</span>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    id="swHideSuperReactions"
+                                    checked
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="switch-item">
+                            <span>Color en menciones</span>
+                            <label class="switch">
+                                <input
+                                    type="checkbox"
+                                    id="swMentionColor"
+                                    checked
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="switch-item-container">
+                            <div class="switch-item">
+                                <span>Efecto brillo en links</span>
+                                <label class="switch">
+                                    <input
+                                        type="checkbox"
+                                        id="swLinkGlow"
+                                        checked
+                                    />
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                            <div class="control-group sub-control">
+                                <div class="control-label">
+                                    <span>Radio de brillo (Glow)</span
+                                    ><span id="glowVal">8px</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    id="glowSlider"
+                                    min="2"
+                                    max="25"
+                                    value="8"
+                                />
+                            </div>
+                            <div class="control-group sub-control">
+                                <div class="control-label">
+                                    <span>Opacidad del resplandor</span
+                                    ><span id="glowOpacityVal">100%</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    id="glowOpacitySlider"
+                                    min="10"
+                                    max="100"
+                                    value="100"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="code-accordion">
+                        <button
+                            class="accordion-btn"
+                            onclick="toggleAccordion('accQuick', 'arrowQuick')"
+                        >
+                            <span>Ver codigo QuickCSS</span
+                            ><span id="arrowQuick" class="arrow">▼</span>
+                        </button>
+                        <div id="accQuick" class="accordion-content">
+                            <textarea id="quickOutput" readonly></textarea>
+                        </div>
+                    </div>
+
+                    <button
+                        class="btn-download secondary"
+                        onclick="
+                            descargarArchivo('quickcss.css', 'quickOutput')
+                        "
+                    >
+                        Descargar QuickCSS
+                    </button>
+                </div>
+            </div>
+
+            <div class="main-upload-wrapper unified-download-container">
+                <button
+                    class="btn-download primary btn-unified-download"
+                    onclick="descargarTemaCompleto()"
+                >
+                    Descargar Todo Unificado (.theme.css)
+                </button>
+            </div>
+
+            <div class="divider"><span>HERRAMIENTAS DE PERFIL</span></div>
+
+            <div class="section-grid">
+                <div class="card">
+                    <h2>Colores 3y3 (FakeProfileThemes)</h2>
+                    <div class="fake-profile">
+                        <div class="profile-presets">
+                            <div
+                                class="profile-preset-item active"
+                                onclick="seleccionarPresetProfile(0, this)"
+                            >
+                                Mezcla 1
+                            </div>
+                            <div
+                                class="profile-preset-item"
+                                onclick="seleccionarPresetProfile(1, this)"
+                            >
+                                Mezcla 2
+                            </div>
+                            <div
+                                class="profile-preset-item"
+                                onclick="seleccionarPresetProfile(2, this)"
+                            >
+                                Mezcla 3
+                            </div>
+                        </div>
+                        <div class="profile-preview-box">
+                            <div
+                                class="profile-bar"
+                                id="prevPrimary"
+                                onclick="copiarTexto(this.textContent)"
+                            >
+                                #121017
+                            </div>
+                            <div
+                                class="profile-bar"
+                                id="prevAccent"
+                                onclick="copiarTexto(this.textContent)"
+                            >
+                                #9d7cd6
+                            </div>
+                        </div>
+
+                        <button class="btn-action" onclick="copiarCodigo3y3()">
+                            Copiar codigo 3y3
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Recortar Avatar</h2>
+                    <div class="avatar-box">
+                        <div class="cropper-empty-state" id="cropperEmptyState">
+                            <div class="question-mark-icon">?</div>
+                            <button
+                                class="btn-action"
+                                onclick="focalizarSubidaGlobal()"
+                            >
+                                Subir imagen para comenzar a editar
+                            </button>
+                        </div>
+
+                        <div
+                            class="cropper-active-state"
+                            id="cropperActiveState"
+                            style="display: none"
+                        >
+                            <div class="avatar-actions-row">
+                                <button
+                                    class="btn-action"
+                                    style="flex: 1;"
+                                    onclick="descargarAvatarCircular()"
+                                >
+                                    Descargar PNG
+                                </button>
+                                <button
+                                    class="btn-action secondary-btn"
+                                    onclick="resetFocalAndZoom()"
+                                    title="Restablecer posicion y zoom"
+                                >
+                                    ↺ Reset
+                                </button>
+                            </div>
+
+                            <div class="focal-editor" id="focalEditor">
+                                <span
+                                    style="
+                                        font-size: 0.75rem;
+                                        color: var(--text-muted);
+                                    "
+                                    >Ajusta el punto de encuadre:</span
+                                >
+                                <div
+                                    class="focal-canvas-container"
+                                    id="focalContainer"
+                                >
+                                    <img
+                                        id="focalImg"
+                                        src=""
+                                        alt="Focal target"
+                                    />
+                                    <div
+                                        class="focal-point"
+                                        id="focalPoint"
+                                    ></div>
+                                </div>
+                                <div class="focal-controls">
+                                    <div class="control-group">
+                                        <div class="control-label">
+                                            <span>Horizontal</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            id="focalX"
+                                            min="0"
+                                            max="100"
+                                            value="50"
+                                        />
+                                    </div>
+                                    <div class="control-group">
+                                        <div class="control-label">
+                                            <span>Vertical</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            id="focalY"
+                                            min="0"
+                                            max="100"
+                                            value="50"
+                                        />
+                                    </div>
+                                    <div class="control-group full-width-control">
+                                        <div class="control-label">
+                                            <span>Zoom</span>
+                                            <span id="zoomVal">1.0x</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            id="focalZoom"
+                                            min="100"
+                                            max="300"
+                                            value="100"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <canvas
+            id="avatarCanvas"
+            width="512"
+            height="512"
+            style="display: none"
+        ></canvas>
+        <script src="script.js"></script>
+    </body>
+</html>
