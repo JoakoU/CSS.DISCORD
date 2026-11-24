@@ -1,854 +1,312 @@
-const PALETA_DEFAULT = [
-  { r: 157, g: 124, b: 214 },
-  { r: 192, g: 202, b: 245 },
-  { r: 187, g: 154, b: 247 },
+"use strict";
+const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const KEY = "css_discord_v2";
+const BASES = {
+  system24: "https://refact0r.github.io/system24/build/system24.css",
+  midnight: "https://refact0r.github.io/midnight-discord/build/midnight.css",
+};
+const FONTS = { "DM Mono": [300, "-0.05ch"], "JetBrains Mono": [400, "-0.05ch"], "Fira Code": [400, "-0.05ch"], Figtree: [400, "0"], Inter: [400, "0"], Nunito: [400, "0"] };
+const SCHEMES = [
+  ["Desde mi imagen"], ["Original", "#121017", "#9d7cd6"], ["Tokyo Night", "#1a1b26", "#7aa2f7"],
+  ["Catppuccin", "#1e1e2e", "#cba6f7"], ["Dracula", "#282a36", "#bd93f9"], ["Nord", "#2e3440", "#88c0d0"],
+  ["Rosé Pine", "#191724", "#ebbcba"], ["Gruvbox", "#282828", "#fabd2f"], ["Sakura", "#1f1418", "#f5a9c8"],
+  ["Matrix", "#050a05", "#33ff66"], ["Sunset", "#1c1112", "#ff7a59"],
+];
+const DEF = {
+  base: "system24", scheme: 1, pal: [[157, 124, 214], [192, 202, 245], [187, 154, 247]], pi: 0, custom: "",
+  font: "DM Mono", radius: 5, opacity: 85, gap: 12, border: 2, blur: 1, trans: 1, small: 1, labels: 1, anim: 1,
+  msg: 1, msgText: "Meow :3\n(Waiting for something to happen?)", pad: 40,
+  gift: 1, btns: 1, sup: 1, gifb: 0, np: 0, ment: 1, glow: 1, glowR: 8, glowO: 100, scroll: 1, sel: 1, extra: "",
+  prof: 0, p1: "#121017", p2: "#9d7cd6", shape: "circle", size: "512",
+};
+// [tipo, clave, etiqueta, ...extra]  tipos: tgl, rng(min,max,unidad), sel(opciones), txt, area
+const THEME_UI = [
+  ["sel", "base", "Tema base", Object.keys(BASES)], ["sel", "font", "Fuente", ["Default", ...Object.keys(FONTS)]],
+  ["rng", "radius", "Bordes suavizados", 0, 20, "px"], ["rng", "opacity", "Opacidad del fondo", 0, 100, "%"],
+  ["rng", "gap", "Separación de paneles", 0, 24, "px"], ["rng", "border", "Grosor de bordes", 0, 6, "px"],
+  ["tgl", "blur", "Blur en paneles"], ["tgl", "trans", "Tweaks de transparencia"], ["tgl", "small", "Panel de usuario pequeño"],
+  ["tgl", "labels", "Etiquetas de paneles"], ["tgl", "anim", "Animaciones"],
+];
+const QUICK_UI = [
+  ["tgl", "msg", "Texto custom en perfil"], ["txt", "msgText", "Texto del perfil"], ["rng", "pad", "Padding/altura banner", 10, 100, "px"],
+  ["tgl", "gift", "Ocultar botón Nitro"], ["tgl", "btns", "Ocultar botones extra (Tienda/Llamadas)"],
+  ["tgl", "sup", "Ocultar superreacciones"], ["tgl", "gifb", "Ocultar GIF/stickers del chat"], ["tgl", "np", "Ocultar «Active Now» en DMs"],
+  ["tgl", "ment", "Color en menciones"], ["tgl", "glow", "Efecto brillo en links"],
+  ["rng", "glowR", "Radio de brillo (Glow)", 2, 25, "px"], ["rng", "glowO", "Opacidad del resplandor", 10, 100, "%"],
+  ["tgl", "scroll", "Scrollbar con tu acento"], ["tgl", "sel", "Selección de texto con acento"],
+  ["area", "extra", "CSS propio (se agrega al final)"],
 ];
 
-let coloresExtraidos = JSON.parse(JSON.stringify(PALETA_DEFAULT));
-let currentPrimaryHex = "#121017";
-let currentAccentHex = "#9d7cd6";
+const fix = (s) => {
+  if (!Array.isArray(s.pal) || s.pal.length < 3) s.pal = DEF.pal;
+  if (!SCHEMES[s.scheme]) s.scheme = 1;
+  if (!BASES[s.base]) s.base = DEF.base;
+  return s;
+};
+const load = () => { try { return fix({ ...DEF, ...JSON.parse(localStorage.getItem(KEY)) }); } catch { return { ...DEF }; } };
+let S = load(), tab = "uni", raf = 0, tt, OUT = {};
+const AV = { img: null, url: "", cx: 0, cy: 0, z: 1 };
 
-let paletaIndex = 0;
-let profilePresetIndex = 0;
-
-let avatarImgElem = null;
-let focalPercentX = 0.5;
-let focalPercentY = 0.5;
-let focalZoom = 1.0;
-let isDraggingFocal = false;
-let renderScheduled = false;
-
-function copiarTexto(str) {
-  if (!str) return;
-  if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(str).catch(() => fallbackCopy(str));
-  } else {
-    fallbackCopy(str);
+/* ---------- utilidades ---------- */
+const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+const hex = (r, g, b) => "#" + [r, g, b].map((v) => clamp(v).toString(16).padStart(2, "0")).join("");
+const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const onCol = (c) => (.299 * c[0] + .587 * c[1] + .114 * c[2] > 150 ? "#0d0a14" : "#fff");
+const toast = (m) => { const t = $("#toast"); t.textContent = m; t.classList.add("show"); clearTimeout(tt); tt = setTimeout(() => t.classList.remove("show"), 1800); };
+const copy = async (s) => {
+  try { await navigator.clipboard.writeText(s); } catch {
+    const t = document.createElement("textarea"); t.value = s; document.body.append(t); t.select(); document.execCommand("copy"); t.remove();
   }
-}
+};
+const save = (name, data, type = "text/css") => {
+  const a = document.createElement("a"), u = URL.createObjectURL(data instanceof Blob ? data : new Blob([data], { type: type + ";charset=utf-8" }));
+  a.href = u; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+};
 
-function fallbackCopy(str) {
-  const el = document.createElement("textarea");
-  el.value = str;
-  document.body.appendChild(el);
-  el.select();
-  document.execCommand("copy");
-  document.body.removeChild(el);
+/* ---------- paleta en OKLab (k-means) ---------- */
+const lin = (v) => ((v /= 255) > .04045 ? ((v + .055) / 1.055) ** 2.4 : v / 12.92);
+const gam = (v) => 255 * (v > .0031308 ? 1.055 * v ** (1 / 2.4) - .055 : 12.92 * v);
+function toLab(r, g, b) {
+  r = lin(r); g = lin(g); b = lin(b);
+  const l = Math.cbrt(.4122214708 * r + .5363325363 * g + .0514459929 * b), m = Math.cbrt(.2119034982 * r + .6806995451 * g + .1073969567 * b), s = Math.cbrt(.0883024619 * r + .2817188376 * g + .6299787005 * b);
+  return [.2104542553 * l + .793617785 * m - .0040720403 * s, 1.9779984951 * l - 2.428592205 * m + .4505937099 * s, .0259040371 * l + .7827717662 * m - .808675766 * s];
 }
-
-function copiarCodigo3y3() {
-  const rawStr = `[${currentPrimaryHex},${currentAccentHex}]`;
-  let encoded3y3 = String.fromCodePoint(0xe0000);
-  for (let i = 0; i < rawStr.length; i++) {
-    encoded3y3 += String.fromCodePoint(0xe0000 + rawStr.charCodeAt(i));
+function fromLab([L, a, b]) {
+  const l = (L + .3963377774 * a + .2158037573 * b) ** 3, m = (L - .1055613458 * a - .0638541728 * b) ** 3, s = (L - .0894841775 * a - 1.291485548 * b) ** 3;
+  return [gam(4.0767416621 * l - 3.3077115913 * m + .2309699292 * s), gam(-1.2684380046 * l + 2.6097574011 * m - .3413193965 * s), gam(-.0041960863 * l - .7034186147 * m + 1.707614701 * s)].map(clamp);
+}
+function extract(img, n = 3) {
+  const c = document.createElement("canvas"), k = Math.min(1, 100 / Math.max(img.width, img.height));
+  c.width = Math.max(1, (img.width * k) | 0); c.height = Math.max(1, (img.height * k) | 0);
+  const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(img, 0, 0, c.width, c.height);
+  const d = x.getImageData(0, 0, c.width, c.height).data, P = [];
+  for (let i = 0; i < d.length; i += 4) if (d[i + 3] >= 128) P.push({ c: [d[i], d[i + 1], d[i + 2]], l: toLab(d[i], d[i + 1], d[i + 2]) });
+  if (!P.length) return null;
+  let C = Array.from({ length: n }, (_, i) => P[Math.floor((i * P.length) / n)].l), G;
+  for (let it = 0; it < 6; it++) {
+    G = C.map(() => []);
+    for (const p of P) { let b = 0, m = 1e9; C.forEach((q, j) => { const e = Math.hypot(p.l[0] - q[0], p.l[1] - q[1], p.l[2] - q[2]); if (e < m) { m = e; b = j; } }); G[b].push(p); }
+    C = C.map((q, j) => { if (!G[j].length) return q; const s = [0, 0, 0]; G[j].forEach((p) => p.c.forEach((v, t) => (s[t] += v))); return toLab(...s.map((v) => v / G[j].length)); });
   }
-  encoded3y3 += String.fromCodePoint(0xe007f);
-  copiarTexto(encoded3y3);
-  alert("Codigo 3y3 copiado al portapapeles.");
+  return G.map((g, j) => ({ n: g.length, c: fromLab([Math.max(C[j][0], .7), C[j][1], C[j][2]]) })).sort((a, b) => b.n - a.n).map((o) => o.c);
 }
 
-function toggleAccordion(contentId, arrowId) {
-  const content = document.getElementById(contentId);
-  const arrow = document.getElementById(arrowId);
-  if (content && arrow) {
-    content.classList.toggle("open");
-    arrow.classList.toggle("open");
-  }
+/* ---------- generación de CSS ---------- */
+const rule = (s, p) => `${s} {\n${Object.entries(p).map(([k, v]) => `    ${k}: ${v};`).join("\n")}\n}\n`;
+function colors() {
+  const sc = SCHEMES[S.scheme];
+  let acc = sc[2] ? rgb(sc[2]) : S.pal[S.pi] || S.pal[0];
+  if (S.custom) acc = rgb(S.custom);
+  return { acc, bg: sc[1] ? rgb(sc[1]) : mix(acc, [8, 8, 12], .9), hex: hex(...acc) };
 }
-
-function rgbToHex(r, g, b) {
-  return (
-    "#" +
-    [r, g, b]
-      .map((x) => {
-        const hex = Math.max(0, Math.min(255, Math.round(x))).toString(16);
-        return hex.length === 1 ? "0" + hex : hex;
-      })
-      .join("")
-  );
-}
-
-function hexToRgb(hex) {
-  let cleanHex = hex.replace("#", "");
-  if (cleanHex.length === 3) {
-    cleanHex = cleanHex.split("").map((c) => c + c).join("");
-  }
-  const num = parseInt(cleanHex, 16);
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255,
-  };
-}
-
-function rgbToOklab(r, g, b) {
-  let sr = r / 255,
-    sg = g / 255,
-    sb = b / 255;
-  sr = sr > 0.04045 ? Math.pow((sr + 0.055) / 1.055, 2.4) : sr / 12.92;
-  sg = sg > 0.04045 ? Math.pow((sg + 0.055) / 1.055, 2.4) : sg / 12.92;
-  sb = sb > 0.04045 ? Math.pow((sb + 0.055) / 1.055, 2.4) : sb / 12.92;
-
-  let l = 0.4122214708 * sr + 0.5363325363 * sg + 0.0514459929 * sb;
-  let m = 0.2119034982 * sr + 0.6806995451 * sg + 0.1073969567 * sb;
-  let s = 0.0883024619 * sr + 0.2817188376 * sg + 0.6299787005 * sb;
-
-  let l_ = Math.cbrt(l),
-    m_ = Math.cbrt(m),
-    s_ = Math.cbrt(s);
-
-  return {
-    L: 0.2104542553 * l_ + 0.793617785 * m_ - 0.0040720403 * s_,
-    a: 1.9779984951 * l_ - 2.428592205 * m_ + 0.4505937099 * s_,
-    b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.808675766 * s_,
-  };
-}
-
-function oklabDistance(lab1, lab2) {
-  let dL = lab1.L - lab2.L,
-    da = lab1.a - lab2.a,
-    db = lab1.b - lab2.b;
-  return Math.sqrt(dL * dL + da * da + db * db);
-}
-
-function asegurarContrasteOKLab(lab, isDark = true) {
-  let targetL = isDark ? Math.max(lab.L, 0.7) : Math.min(lab.L, 0.3);
-  return { ...lab, L: targetL };
-}
-
-function oklabToRgb(lab) {
-  let l_ = lab.L + 0.3963377774 * lab.a + 0.2158037573 * lab.b;
-  let m_ = lab.L - 0.1055613458 * lab.a - 0.0638541728 * lab.b;
-  let s_ = lab.L - 0.0894841775 * lab.a - 1.291485548 * lab.b;
-
-  let l = l_ * l_ * l_,
-    m = m_ * m_ * m_,
-    s = s_ * s_ * s_;
-
-  let sr = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
-  let sg = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
-  let sb = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
-
-  let r = sr > 0.0031308 ? 1.055 * Math.pow(sr, 1 / 2.4) - 0.055 : 12.92 * sr;
-  let g = sg > 0.0031308 ? 1.055 * Math.pow(sg, 1 / 2.4) - 0.055 : 12.92 * sg;
-  let b = sb > 0.0031308 ? 1.055 * Math.pow(sb, 1 / 2.4) - 0.055 : 12.92 * sb;
-
-  return {
-    r: Math.max(0, Math.min(255, Math.round(r * 255))),
-    g: Math.max(0, Math.min(255, Math.round(g * 255))),
-    b: Math.max(0, Math.min(255, Math.round(b * 255))),
-  };
-}
-
-function extraerPaletaOKLab(img, count = 3) {
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  const scale = Math.min(1, 100 / Math.max(img.width, img.height));
-  canvas.width = Math.max(1, Math.floor(img.width * scale));
-  canvas.height = Math.max(1, Math.floor(img.height * scale));
-
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-
-  let pixels = [];
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 128) continue;
-    let r = data[i],
-      g = data[i + 1],
-      b = data[i + 2];
-    pixels.push({ r, g, b, lab: rgbToOklab(r, g, b) });
-  }
-
-  if (!pixels.length) return JSON.parse(JSON.stringify(PALETA_DEFAULT));
-
-  let centroids = [];
-  let step = Math.floor(pixels.length / count);
-  for (let i = 0; i < count; i++) {
-    centroids.push({ ...pixels[Math.min(i * step, pixels.length - 1)] });
-  }
-
-  for (let iter = 0; iter < 6; iter++) {
-    let clusters = Array.from({ length: count }, () => []);
-    for (let p of pixels) {
-      let minDist = Infinity,
-        closest = 0;
-      for (let c = 0; c < count; c++) {
-        let dist = oklabDistance(p.lab, centroids[c].lab);
-        if (dist < minDist) {
-          minDist = dist;
-          closest = c;
-        }
-      }
-      clusters[closest].push(p);
-    }
-
-    for (let c = 0; c < count; c++) {
-      if (!clusters[c].length) continue;
-      let sumR = 0,
-        sumG = 0,
-        sumB = 0;
-      for (let p of clusters[c]) {
-        sumR += p.r;
-        sumG += p.g;
-        sumB += p.b;
-      }
-      let r = Math.round(sumR / clusters[c].length);
-      let g = Math.round(sumG / clusters[c].length);
-      let b = Math.round(sumB / clusters[c].length);
-      centroids[c] = { r, g, b, lab: rgbToOklab(r, g, b) };
-    }
-  }
-
-  return centroids.map((c) => oklabToRgb(asegurarContrasteOKLab(c.lab, true)));
-}
-
-function focalizarSubidaGlobal() {
-  const uploadWrapper = document.getElementById("mainUploadWrapper");
-  if (uploadWrapper) {
-    uploadWrapper.scrollIntoView({ behavior: "smooth", block: "center" });
-    uploadWrapper.classList.add("highlight");
-    setTimeout(() => {
-      uploadWrapper.classList.remove("highlight");
-    }, 2000);
-  }
-}
-
-function aplicarColoresUI(mainHex) {
-  document.documentElement.style.setProperty("--accent-ui", mainHex);
-  document.documentElement.style.setProperty("--border-hover", mainHex);
-}
-
-function inicializarCargaGlobal() {
-  const globalImgInput = document.getElementById("globalImgInput");
-  const globalUploadStatus = document.getElementById("globalUploadStatus");
-
-  if (!globalImgInput) return;
-
-  globalImgInput.addEventListener("change", function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (globalUploadStatus) {
-      globalUploadStatus.textContent = `Imagen: ${file.name}`;
-    }
-
-    const imgDataUrl = URL.createObjectURL(file);
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-
-    img.onload = function () {
-      try {
-        coloresExtraidos = extraerPaletaOKLab(img, 3);
-      } catch (err) {
-        console.error(err);
-      }
-
-      while (coloresExtraidos.length < 3) {
-        const base =
-          coloresExtraidos[coloresExtraidos.length - 1] || PALETA_DEFAULT[0];
-        coloresExtraidos.push({
-          r: Math.min(255, Math.round(base.r * 1.2)),
-          g: Math.min(255, Math.round(base.g * 1.2)),
-          b: Math.min(255, Math.round(base.b * 1.2)),
-        });
-      }
-
-      paletaIndex = 0;
-      document
-        .querySelectorAll(".palette-option")
-        .forEach((opt, idx) => opt.classList.toggle("active", idx === 0));
-
-      procesarPaleta();
-    };
-
-    img.src = imgDataUrl;
-    cargarImagenParaRecorte(imgDataUrl);
-  });
-}
-
-function cargarImagenParaRecorte(dataUrl) {
-  avatarImgElem = new Image();
-  avatarImgElem.onload = function () {
-    resetFocalAndZoom();
-
-    const focalImg = document.getElementById("focalImg");
-    const focalEditor = document.getElementById("focalEditor");
-    const cropperEmptyState = document.getElementById("cropperEmptyState");
-    const cropperActiveState = document.getElementById("cropperActiveState");
-
-    if (cropperEmptyState) cropperEmptyState.style.display = "none";
-    if (cropperActiveState) cropperActiveState.style.display = "block";
-
-    if (focalImg) focalImg.src = dataUrl;
-    if (focalEditor) focalEditor.classList.add("active");
-
-    requestRender();
-  };
-  avatarImgElem.src = dataUrl;
-}
-
-function resetFocalAndZoom() {
-  focalPercentX = 0.5;
-  focalPercentY = 0.5;
-  focalZoom = 1.0;
-
-  const focalX = document.getElementById("focalX");
-  const focalY = document.getElementById("focalY");
-  const focalZoomElem = document.getElementById("focalZoom");
-  const zoomVal = document.getElementById("zoomVal");
-
-  if (focalX) focalX.value = 50;
-  if (focalY) focalY.value = 50;
-  if (focalZoomElem) focalZoomElem.value = 100;
-  if (zoomVal) zoomVal.textContent = "1.0x";
-
-  requestRender();
-}
-
-function procesarPaleta() {
-  coloresExtraidos.forEach((rgb, idx) => {
-    const dotsContainer = document.getElementById(`dots-${idx}`);
-    if (!dotsContainer) return;
-    const hexMain = rgbToHex(rgb.r, rgb.g, rgb.b);
-    const hexDark = rgbToHex(
-      Math.max(10, Math.round(rgb.r * 0.5)),
-      Math.max(10, Math.round(rgb.g * 0.5)),
-      Math.max(10, Math.round(rgb.b * 0.5)),
-    );
-    const hexLight = rgbToHex(
-      Math.min(255, Math.round(rgb.r * 1.2)),
-      Math.min(255, Math.round(rgb.g * 1.2)),
-      Math.min(255, Math.round(rgb.b * 1.2)),
-    );
-
-    dotsContainer.innerHTML = `
-            <div class="color-dot" style="background: ${hexMain};"></div>
-            <div class="color-dot" style="background: ${hexLight};"></div>
-            <div class="color-dot" style="background: ${hexDark};"></div>
-        `;
-  });
-
-  const activeRGB = coloresExtraidos[paletaIndex] || coloresExtraidos[0];
-  const mainHex = rgbToHex(activeRGB.r, activeRGB.g, activeRGB.b);
-
-  aplicarColoresUI(mainHex);
-
-  if (profilePresetIndex === 0) {
-    currentPrimaryHex = "#121017";
-    currentAccentHex = mainHex;
-  } else if (profilePresetIndex === 1) {
-    currentPrimaryHex = mainHex;
-    currentAccentHex = "#ffffff";
-  } else {
-    let secRGB = coloresExtraidos[(paletaIndex + 1) % coloresExtraidos.length];
-    currentPrimaryHex = mainHex;
-    currentAccentHex = rgbToHex(secRGB.r, secRGB.g, secRGB.b);
-  }
-
-  const prevPrimary = document.getElementById("prevPrimary");
-  const prevAccent = document.getElementById("prevAccent");
-
-  if (prevPrimary) {
-    prevPrimary.style.background = currentPrimaryHex;
-    prevPrimary.textContent = currentPrimaryHex;
-  }
-  if (prevAccent) {
-    prevAccent.style.background = currentAccentHex;
-    prevAccent.style.color = currentAccentHex === "#ffffff" ? "#000" : "#fff";
-    prevAccent.textContent = currentAccentHex;
-  }
-
-  actualizarTema();
-  generarQuickCSS();
-  guardarEnLocalStorage();
-}
-
-function seleccionarPaleta(index, el) {
-  paletaIndex = index;
-  document
-    .querySelectorAll(".palette-option")
-    .forEach((opt) => opt.classList.remove("active"));
-  if (el) el.classList.add("active");
-  procesarPaleta();
-}
-
-function seleccionarPresetProfile(index, el) {
-  profilePresetIndex = index;
-  document
-    .querySelectorAll(".profile-preset-item")
-    .forEach((opt) => opt.classList.remove("active"));
-  if (el) el.classList.add("active");
-  procesarPaleta();
-}
-
-function actualizarTema() {
-  const radiusElem = document.getElementById("radiusSlider");
-  const opacityElem = document.getElementById("opacitySlider");
-  if (!radiusElem || !opacityElem) return;
-
-  const radius = radiusElem.value;
-  const opacity = (opacityElem.value / 100).toFixed(2);
-
-  const radiusVal = document.getElementById("radiusVal");
-  const opacityVal = document.getElementById("opacityVal");
-  if (radiusVal) radiusVal.textContent = `${radius}px`;
-  if (opacityVal) opacityVal.textContent = `${Math.round(opacity * 100)}%`;
-
-  const rgb = coloresExtraidos[paletaIndex] || coloresExtraidos[0];
-  const mainHex = rgbToHex(rgb.r, rgb.g, rgb.b);
-
-  const discordPreview = document.getElementById("discordPreview");
-  if (discordPreview) {
-    discordPreview.style.setProperty("--preview-radius", `${radius}px`);
-    discordPreview.style.setProperty(
-      "--preview-bg",
-      `rgba(18, 16, 23, ${opacity})`,
-    );
-    discordPreview.style.setProperty("--preview-border", mainHex);
-  }
-
-  const theme = `/**
- * @name system24 (Custom Palette)
- * @author Joako
- */
-
-@import url("https://refact0r.github.io/system24/build/system24.css");
+function themeCss(c) {
+  const o = (S.opacity / 100).toFixed(2), f = FONTS[S.font], on = (v) => (v ? "on" : "off"), a = c.acc, W = [255, 255, 255], K = [0, 0, 0];
+  const [r, g, b] = a.map(Math.round), fam = f ? `"${S.font}"` : "''";
+  const bgs = [0, .22, .45, .67].map((t, i) => `    --bg-${i + 1}: rgba(${mix(c.bg, K, t).map(Math.round)}, ${o});`).join("\n");
+  const acs = [mix(a, W, .2), a, mix(a, K, .12), mix(a, K, .24), mix(a, K, .36)].map((v, i) => `    --accent-${i + 1}: ${hex(...v)};`).join("\n");
+  return `${f ? `@import url("https://fonts.googleapis.com/css2?family=${S.font.replace(/ /g, "+")}:wght@300;400;700&display=swap");\n` : ""}@import url("${BASES[S.base]}");
 
 body {
-    --font: "DM Mono";
-    --code-font: "DM Mono";
-    font-weight: 300;
-    letter-spacing: -0.05ch;
+    --font: ${fam};
+    --code-font: ${fam};
+    font-weight: ${f ? f[0] : 400};
+    letter-spacing: ${f ? f[1] : 0};
 
-    --gap: 12px;
+    --gap: ${S.gap}px;
     --divider-thickness: 4px;
-    --border-thickness: 2px;
+    --border-thickness: ${S.border}px;
     --border-hover-transition: 0.2s ease;
+    --animations: ${on(S.anim)};
 
-    --transparency-tweaks: on;
-    --remove-bg-layer: on;
-    --panel-blur: on;
-    --small-user-panel: on;
+    --transparency-tweaks: ${on(S.trans)};
+    --remove-bg-layer: ${on(S.trans)};
+    --panel-blur: ${on(S.blur)};
+    --small-user-panel: ${on(S.small)};
     --unrounding: off;
-    --panel-labels: on;
+    --panel-labels: ${on(S.labels)};
 }
 
 :root {
     --colors: on;
 
-    --bg-1: rgba(18, 16, 23, ${opacity});
-    --bg-2: rgba(14, 12, 19, ${opacity});
-    --bg-3: rgba(10, 8, 14, ${opacity});
-    --bg-4: rgba(6, 5, 8, ${opacity});
+${bgs}
 
-    --hover: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.15);
-    --active: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.28);
+    --hover: rgba(${r}, ${g}, ${b}, 0.15);
+    --active: rgba(${r}, ${g}, ${b}, 0.28);
+    --mention: rgba(${r}, ${g}, ${b}, 0.1);
 
-    --accent-1: ${mainHex};
-    --accent-2: ${mainHex};
-    --border: rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.35);
-    --border-hover: ${mainHex};
+${acs}
+    --border: rgba(${r}, ${g}, ${b}, 0.35);
+    --border-hover: ${c.hex};
 }
 
 #app-mount :is(
-    div, button, a, img,
-    [class*="container"], [class*="wrapper"], [class*="inner"],
-    [class*="panel"], [class*="menu"], [class*="card"],
-    [class*="popout"], [class*="modal"], [class*="input"], [class*="button"]
+    [class*="panel"], [class*="menu"], [class*="card"], [class*="popout"], [class*="modal"],
+    [class*="input"], [class*="button"], [class*="avatar"], [class*="mask"], img, foreignObject
 ) {
-    border-radius: ${radius}px !important;
-}
-
-#app-mount :is([class*="avatar"], foreignObject, [class*="mask"]) {
-    border-radius: ${radius}px !important;
+    border-radius: ${S.radius}px !important;
 }`;
-
-  const themeOutput = document.getElementById("themeOutput");
-  if (themeOutput) themeOutput.value = theme;
 }
-
-function generarQuickCSS() {
-  let css = "";
-
-  const swProfileMsg = document.getElementById("swProfileMsg");
-  const swHideGift = document.getElementById("swHideGift");
-  const swHideButtons = document.getElementById("swHideButtons");
-  const swHideSuperReactions = document.getElementById("swHideSuperReactions");
-  const swMentionColor = document.getElementById("swMentionColor");
-  const swLinkGlow = document.getElementById("swLinkGlow");
-
-  const customMsgInput = document.getElementById("customMsgInput");
-  const bannerPaddingSlider = document.getElementById("bannerPaddingSlider");
-  const glowSlider = document.getElementById("glowSlider");
-  const glowOpacitySlider = document.getElementById("glowOpacitySlider");
-
-  const bannerPaddingVal = document.getElementById("bannerPaddingVal");
-  const glowVal = document.getElementById("glowVal");
-  const glowOpacityVal = document.getElementById("glowOpacityVal");
-
-  let paddingPx = bannerPaddingSlider ? bannerPaddingSlider.value : "40";
-  if (bannerPaddingVal) bannerPaddingVal.textContent = `${paddingPx}px`;
-
-  let glowRadius = glowSlider ? glowSlider.value : "8";
-  if (glowVal) glowVal.textContent = `${glowRadius}px`;
-
-  let glowOpacity = glowOpacitySlider ? glowOpacitySlider.value / 100 : 1;
-  if (glowOpacityVal)
-    glowOpacityVal.textContent = `${Math.round(glowOpacity * 100)}%`;
-
-  let customMsg = customMsgInput
-    ? customMsgInput.value
-    : "Meow :3\\a(Waiting for something to happen?)";
-  customMsg = customMsg.replace(/"/g, '\\"').replace(/\n/g, "\\a ");
-
-  if (swProfileMsg && swProfileMsg.checked) {
-    css += `.user-profile-sidebar::after {\n    --profile-gradient-start: color-mix(\n        in oklab,\n        var(--profile-gradient-overlay-color) 100%,\n        var(--profile-gradient-primary-color)\n    );\n    --profile-gradient-end: color-mix(\n        in oklab,\n        var(--profile-gradient-overlay-color) 100%,\n        var(--profile-gradient-secondary-color)\n    );\n    padding: ${paddingPx}px;\n    background: linear-gradient(\n        var(--profile-gradient-start),\n        var(--profile-gradient-start) var(--custom-user-profile-banner-height),\n        var(--profile-gradient-end)\n    );\n    color: #ffffff;\n    text-align: center;\n    font-size: 15px;\n    overflow: hidden;\n    display: block;\n    content: "${customMsg}";\n}\n\n`;
-  }
-
-  if (swHideGift && swHideGift.checked) {
-    css += `#app-mount div:is([aria-label*="regalo" i], [aria-label*="gift" i]) {\n    display: none !important;\n}\n\n`;
-  }
-
-  if (swHideButtons && swHideButtons.checked) {
-    css += `#app-mount [class*="upperContainer__"] [aria-label*="videollamada" i],\n#app-mount [data-list-item-id*="nitro"],\n#app-mount [data-list-item-id*="shop"],\n#app-mount [data-list-item-id*="quests"] {\n    display: none !important;\n}\n\n`;
-  }
-
-  if (swHideSuperReactions && swHideSuperReactions.checked) {
-    css += `#app-mount [aria-label*="super" i][role="button"] {\n    display: none !important;\n}\n\n`;
-  }
-
-  if (swMentionColor && swMentionColor.checked) {
-    css += `#app-mount [class*="mentioned__"] {\n    border-left: 4px solid ${currentAccentHex} !important;\n    background: linear-gradient(to right, ${currentAccentHex}22, transparent) !important;\n}\n\n`;
-  }
-
-  if (swLinkGlow && swLinkGlow.checked) {
-    const activeRGB = coloresExtraidos[paletaIndex] || coloresExtraidos[0];
-    const glowRgba = `rgba(${activeRGB.r}, ${activeRGB.g}, ${activeRGB.b}, ${glowOpacity})`;
-
-    css += `#app-mount [class*="modeSelected__"] [class*="name__"] {\n    color: ${currentAccentHex} !important;\n    font-weight: bold !important;\n    text-shadow: 0 0 ${glowRadius}px ${glowRgba};\n}\n#app-mount a[id*="message-link"],\n#app-mount [class*="messageContent"] a {\n    color: ${currentAccentHex} !important;\n    font-weight: 500 !important;\n    transition: text-shadow 0.3s ease, color 0.3s ease !important;\n}\n#app-mount a[id*="message-link"]:hover,\n#app-mount [class*="messageContent"] a:hover {\n    color: #ffffff !important;\n    text-shadow: 0 0 ${glowRadius}px ${glowRgba}, 0 0 ${Math.round(glowRadius * 1.8)}px ${glowRgba} !important;\n    text-decoration: underline !important;\n}\n\n`;
-  }
-
-  const quickOutput = document.getElementById("quickOutput");
-  if (quickOutput) quickOutput.value = css;
+function quickCss(c) {
+  const A = c.hex, [r, g, b] = c.acc.map(Math.round), gc = `rgba(${r}, ${g}, ${b}, ${S.glowO / 100})`, gr = S.glowR, I = " !important", Q = [];
+  const msg = S.msgText.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\n/g, "\\a ");
+  const hide = (on, sel) => on && Q.push(rule(sel, { display: "none" + I }));
+  if (S.msg) Q.push(rule(".user-profile-sidebar::after", {
+    "--profile-gradient-start": "color-mix(in oklab, var(--profile-gradient-overlay-color) 100%, var(--profile-gradient-primary-color))",
+    "--profile-gradient-end": "color-mix(in oklab, var(--profile-gradient-overlay-color) 100%, var(--profile-gradient-secondary-color))",
+    padding: S.pad + "px",
+    background: "linear-gradient(var(--profile-gradient-start), var(--profile-gradient-start) var(--custom-user-profile-banner-height), var(--profile-gradient-end))",
+    color: "#ffffff", "text-align": "center", "font-size": "15px", overflow: "hidden", display: "block", content: `"${msg}"`,
+  }));
+  hide(S.gift, '#app-mount div:is([aria-label*="regalo" i], [aria-label*="gift" i])');
+  hide(S.btns, '#app-mount [class*="upperContainer__"] [aria-label*="videollamada" i],\n#app-mount [data-list-item-id*="nitro"],\n#app-mount [data-list-item-id*="shop"],\n#app-mount [data-list-item-id*="quests"]');
+  hide(S.sup, '#app-mount [aria-label*="super" i][role="button"]');
+  hide(S.gifb, '#app-mount [class*="channelTextArea"] :is([aria-label*="GIF" i], [aria-label*="sticker" i])');
+  hide(S.np, '#app-mount [class*="nowPlayingColumn"]');
+  if (S.ment) Q.push(rule('#app-mount [class*="mentioned__"]', { "border-left": `4px solid ${A}` + I, background: `linear-gradient(to right, ${A}22, transparent)` + I }));
+  if (S.glow) Q.push(
+    rule('#app-mount [class*="modeSelected__"] [class*="name__"]', { color: A + I, "font-weight": "bold" + I, "text-shadow": `0 0 ${gr}px ${gc}` }),
+    rule('#app-mount a[id*="message-link"],\n#app-mount [class*="messageContent"] a', { color: A + I, "font-weight": "500" + I, transition: "text-shadow 0.3s ease, color 0.3s ease" + I }),
+    rule('#app-mount a[id*="message-link"]:hover,\n#app-mount [class*="messageContent"] a:hover', { color: "#ffffff" + I, "text-shadow": `0 0 ${gr}px ${gc}, 0 0 ${Math.round(gr * 1.8)}px ${gc}` + I, "text-decoration": "underline" + I }));
+  if (S.scroll) Q.push(
+    rule("#app-mount ::-webkit-scrollbar", { width: "8px", height: "8px" }),
+    rule("#app-mount ::-webkit-scrollbar-thumb", { background: A + "66", "border-radius": S.radius + "px" }),
+    rule("#app-mount ::-webkit-scrollbar-track", { background: "transparent" }));
+  if (S.sel) Q.push(rule("#app-mount ::selection", { background: A + "55", color: "#ffffff" }));
+  if (S.extra.trim()) Q.push(S.extra.trim() + "\n");
+  return Q.join("\n");
 }
+const prof = () => { const a = colors().hex; return [["#121017", a], [a, "#ffffff"], [a, hex(...S.pal[(S.pi + 1) % 3])], [S.p1, S.p2]][S.prof]; };
+const enc3y3 = (s) => String.fromCodePoint(0xe0000) + [...s].map((ch) => String.fromCodePoint(0xe0000 + ch.charCodeAt(0))).join("") + String.fromCodePoint(0xe007f);
 
-function descargarTemaCompleto() {
-  const themeSrc = document.getElementById("themeOutput")?.value || "";
-  const quickSrc = document.getElementById("quickOutput")?.value || "";
-
-  const unificado = `/**
- * @name System24-FullCustom
- * @author Joako
- * @description Tema unificado con configuraciones de QuickCSS.
- */
-
-${themeSrc}
-
-${quickSrc}`;
-
-  const blob = new Blob([unificado], { type: "text/css;charset=utf-8" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "System24-FullCustom.theme.css";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function guardarEnLocalStorage() {
-  const state = {
-    paletaIndex,
-    profilePresetIndex,
-    coloresExtraidos,
-    radius: document.getElementById("radiusSlider")?.value,
-    opacity: document.getElementById("opacitySlider")?.value,
-    customMsg: document.getElementById("customMsgInput")?.value,
-    bannerPadding: document.getElementById("bannerPaddingSlider")?.value,
-    glow: document.getElementById("glowSlider")?.value,
-    glowOpacity: document.getElementById("glowOpacitySlider")?.value,
-    swProfileMsg: document.getElementById("swProfileMsg")?.checked,
-    swHideGift: document.getElementById("swHideGift")?.checked,
-    swHideButtons: document.getElementById("swHideButtons")?.checked,
-    swHideSuperReactions: document.getElementById("swHideSuperReactions")
-      ?.checked,
-    swMentionColor: document.getElementById("swMentionColor")?.checked,
-    swLinkGlow: document.getElementById("swLinkGlow")?.checked,
+/* ---------- render ---------- */
+const render = () => raf || (raf = requestAnimationFrame(() => { raf = 0; update(); }));
+function update() {
+  const c = colors(), o = (S.opacity / 100).toFixed(2), T = themeCss(c), Qc = quickCss(c);
+  const meta = (n) => `/**\n * @name ${n}\n * @author Joako\n * @description Generado con CSS.DISCORD\n */\n\n`;
+  OUT = {
+    uni: [`${S.base}-full.theme.css`, meta(S.base + "-FullCustom") + T + "\n\n" + Qc],
+    theme: [`${S.base}-tema.theme.css`, meta(S.base + " (Custom Palette)") + T],
+    quick: ["quickcss.css", Qc],
   };
-  localStorage.setItem("custom_css_generator_config", JSON.stringify(state));
+  $("#out").value = OUT[tab][1];
+  $$("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
+  $$("[data-s]").forEach((b) => b.classList.toggle("on", +b.dataset.s === S.scheme));
+  $$("[data-prof]").forEach((b) => b.classList.toggle("on", +b.dataset.prof === S.prof));
+  $("#pal").innerHTML = S.pal.map((p, i) => `<button class="pal${S.scheme === 0 && S.pi === i && !S.custom ? " on" : ""}" data-i="${i}" aria-label="Color ${i + 1}">${[p, mix(p, [255, 255, 255], .2), mix(p, [0, 0, 0], .5)].map((v) => `<i style="background:${hex(...v)}"></i>`).join("")}</button>`).join("");
+  const st = document.documentElement.style; st.setProperty("--acc", c.hex); st.setProperty("--on", onCol(c.acc));
+  $("#pv").style.cssText = `--pa:${c.hex};--pr:${S.radius}px;--pb:rgba(${c.bg.map(Math.round)},${o});--pg:${S.glow ? S.glowR : 0}px`;
+  if (document.activeElement !== $("#cc")) $("#cc").value = c.hex;
+  prof().forEach((h, i) => { const b = $("#b" + (i + 1)); b.style.background = h; b.style.color = onCol(rgb(h)); b.textContent = h; });
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
 }
-
-function cargarDesdeLocalStorage() {
-  const saved = localStorage.getItem("custom_css_generator_config");
-  if (!saved) return;
-  try {
-    const state = JSON.parse(saved);
-    if (state.coloresExtraidos) coloresExtraidos = state.coloresExtraidos;
-    if (state.paletaIndex !== undefined) paletaIndex = state.paletaIndex;
-    if (state.profilePresetIndex !== undefined)
-      profilePresetIndex = state.profilePresetIndex;
-
-    const setVal = (id, val) => {
-      const el = document.getElementById(id);
-      if (el && val !== undefined) el.value = val;
-    };
-    const setCheck = (id, val) => {
-      const el = document.getElementById(id);
-      if (el && val !== undefined) el.checked = val;
-    };
-
-    setVal("radiusSlider", state.radius);
-    setVal("opacitySlider", state.opacity);
-    setVal("customMsgInput", state.customMsg);
-    setVal("bannerPaddingSlider", state.bannerPadding);
-    setVal("glowSlider", state.glow);
-    setVal("glowOpacitySlider", state.glowOpacity);
-
-    setCheck("swProfileMsg", state.swProfileMsg);
-    setCheck("swHideGift", state.swHideGift);
-    setCheck("swHideButtons", state.swHideButtons);
-    setCheck("swHideSuperReactions", state.swHideSuperReactions);
-    setCheck("swMentionColor", state.swMentionColor);
-    setCheck("swLinkGlow", state.swLinkGlow);
-
-    document.querySelectorAll(".palette-option").forEach((opt, idx) => {
-      opt.classList.toggle("active", idx === paletaIndex);
-    });
-    document.querySelectorAll(".profile-preset-item").forEach((opt, idx) => {
-      opt.classList.toggle("active", idx === profilePresetIndex);
-    });
-  } catch (err) {
-    console.error(err);
-  }
+function ctl([t, k, l, a, b, u]) {
+  const id = "c_" + k;
+  if (t === "tgl") return `<label class="row"><span>${l}</span><span class="sw"><input type="checkbox" id="${id}" data-k="${k}"><i></i></span></label>`;
+  if (t === "rng") return `<div class="col"><label class="row" for="${id}"><span>${l}</span><b id="v_${k}"></b></label><input type="range" id="${id}" data-k="${k}" data-u="${u}" min="${a}" max="${b}"></div>`;
+  if (t === "sel") return `<label class="row"><span>${l}</span><select id="${id}" data-k="${k}">${a.map((o) => `<option>${o}</option>`).join("")}</select></label>`;
+  return `<div class="col"><label for="${id}">${l}</label><textarea id="${id}" data-k="${k}" rows="${t === "area" ? 4 : 2}" spellcheck="false"></textarea></div>`;
 }
-
-function requestRender() {
-  if (!renderScheduled) {
-    renderScheduled = true;
-    requestAnimationFrame(() => {
-      actualizarVistaYRecorte();
-      renderScheduled = false;
-    });
-  }
-}
-
-function calcularOrigenRecorte() {
-  if (!avatarImgElem) return { sx: 0, sy: 0, cropSize: 0 };
-
-  const imgW = avatarImgElem.width;
-  const imgH = avatarImgElem.height;
-  const baseSide = Math.min(imgW, imgH);
-  const cropSize = baseSide / focalZoom;
-
-  let centerX = imgW * focalPercentX;
-  let centerY = imgH * focalPercentY;
-
-  let sx = centerX - cropSize / 2;
-  let sy = centerY - cropSize / 2;
-
-  sx = Math.max(0, Math.min(imgW - cropSize, sx));
-  sy = Math.max(0, Math.min(imgH - cropSize, sy));
-
-  return { sx, sy, cropSize };
-}
-
-function actualizarVistaYRecorte() {
-  if (!avatarImgElem) return;
-
-  const focalPoint = document.getElementById("focalPoint");
-  const focalImg = document.getElementById("focalImg");
-  const focalContainer = document.getElementById("focalContainer");
-
-  if (focalContainer && focalImg) {
-    const containerW = focalContainer.clientWidth;
-    const containerH = focalContainer.clientHeight;
-
-    const imgW = avatarImgElem.width;
-    const imgH = avatarImgElem.height;
-    const baseSide = Math.min(imgW, imgH);
-    const cropSize = baseSide / focalZoom;
-
-    const scale = containerW / cropSize;
-
-    const { sx, sy } = calcularOrigenRecorte();
-
-    const displayImgW = imgW * scale;
-    const displayImgH = imgH * scale;
-    const displayLeft = -sx * scale;
-    const displayTop = -sy * scale;
-
-    focalImg.src = avatarImgElem.src;
-    focalImg.style.width = `${displayImgW}px`;
-    focalImg.style.height = `${displayImgH}px`;
-    focalImg.style.left = `${displayLeft}px`;
-    focalImg.style.top = `${displayTop}px`;
-
-    if (focalPoint) {
-      const dotX = (focalPercentX * imgW - sx) * scale;
-      const dotY = (focalPercentY * imgH - sy) * scale;
-      focalPoint.style.left = `${Math.max(0, Math.min(containerW, dotX))}px`;
-      focalPoint.style.top = `${Math.max(0, Math.min(containerH, dotY))}px`;
-    }
-  }
-
-  const canvas = document.getElementById("avatarCanvas");
-  canvas.width = 512;
-  canvas.height = 512;
-  const ctx = canvas.getContext("2d");
-  ctx.clearRect(0, 0, 512, 512);
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(256, 256, 256, 0, Math.PI * 2);
-  ctx.closePath();
-  ctx.clip();
-
-  const { sx, sy, cropSize } = calcularOrigenRecorte();
-  ctx.drawImage(avatarImgElem, sx, sy, cropSize, cropSize, 0, 0, 512, 512);
-  ctx.restore();
-}
-
-function actualizarPuntoDesdeEvent(e) {
-  const focalContainer = document.getElementById("focalContainer");
-  if (!focalContainer || !avatarImgElem) return;
-
-  const rect = focalContainer.getBoundingClientRect();
-  const containerW = rect.width;
-
-  const imgW = avatarImgElem.width;
-  const imgH = avatarImgElem.height;
-  const baseSide = Math.min(imgW, imgH);
-  const cropSize = baseSide / focalZoom;
-  const scale = containerW / cropSize;
-
-  const { sx, sy } = calcularOrigenRecorte();
-
-  let clientX = e.clientX || (e.touches && e.touches[0].clientX);
-  let clientY = e.clientY || (e.touches && e.touches[0].clientY);
-
-  let clickX = clientX - rect.left;
-  let clickY = clientY - rect.top;
-
-  let targetImgX = sx + clickX / scale;
-  let targetImgY = sy + clickY / scale;
-
-  focalPercentX = Math.max(0, Math.min(1, targetImgX / imgW));
-  focalPercentY = Math.max(0, Math.min(1, targetImgY / imgH));
-
-  const focalX = document.getElementById("focalX");
-  const focalY = document.getElementById("focalY");
-  if (focalX) focalX.value = Math.round(focalPercentX * 100);
-  if (focalY) focalY.value = Math.round(focalPercentY * 100);
-
-  requestRender();
-}
-
-function actualizarPuntoDesdeSliders() {
-  const focalX = document.getElementById("focalX");
-  const focalY = document.getElementById("focalY");
-  const focalZoomElem = document.getElementById("focalZoom");
-  const zoomVal = document.getElementById("zoomVal");
-
-  if (focalX && focalY) {
-    focalPercentX = focalX.value / 100;
-    focalPercentY = focalY.value / 100;
-  }
-
-  if (focalZoomElem) {
-    focalZoom = focalZoomElem.value / 100;
-    if (zoomVal) zoomVal.textContent = `${focalZoom.toFixed(1)}x`;
-  }
-
-  requestRender();
-}
-
-function inicializarFocalEvents() {
-  const focalContainer = document.getElementById("focalContainer");
-  if (!focalContainer) return;
-
-  focalContainer.addEventListener("mousedown", (e) => {
-    isDraggingFocal = true;
-    actualizarPuntoDesdeEvent(e);
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (isDraggingFocal) actualizarPuntoDesdeEvent(e);
-  });
-  window.addEventListener("mouseup", () => {
-    isDraggingFocal = false;
-  });
-
-  focalContainer.addEventListener("touchstart", (e) => {
-    isDraggingFocal = true;
-    actualizarPuntoDesdeEvent(e);
-  });
-  window.addEventListener("touchmove", (e) => {
-    if (isDraggingFocal) actualizarPuntoDesdeEvent(e);
-  });
-  window.addEventListener("touchend", () => {
-    isDraggingFocal = false;
+function syncUI() {
+  $$("[data-k]").forEach((el) => {
+    const v = S[el.dataset.k];
+    if (el.type === "checkbox") el.checked = !!v; else if (el.id !== "cc") el.value = v;
+    const l = $("#v_" + el.dataset.k); if (l) l.textContent = v + el.dataset.u;
   });
 }
 
-function descargarAvatarCircular() {
-  if (!avatarImgElem) return alert("Primero selecciona una imagen.");
-  actualizarVistaYRecorte();
-  const canvas = document.getElementById("avatarCanvas");
-  const link = document.createElement("a");
-  link.download = "avatar-512x512.png";
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
-function descargarArchivo(nombreArchivo, elementId) {
-  const el = document.getElementById(elementId);
-  if (!el || !el.value) return;
-  const blob = new Blob([el.value], { type: "text/css;charset=utf-8" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = nombreArchivo;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
-
-function inicializarListeners() {
-  const ids = [
-    "radiusSlider",
-    "opacitySlider",
-    "customMsgInput",
-    "bannerPaddingSlider",
-    "glowSlider",
-    "glowOpacitySlider",
-  ];
-  const updateAll = () => {
-    actualizarTema();
-    generarQuickCSS();
-    guardarEnLocalStorage();
+/* ---------- imagen y avatar ---------- */
+function onFile(f) {
+  if (!f || !f.type.startsWith("image/")) return toast("Elegí un archivo de imagen");
+  $("#upStatus").textContent = "Imagen: " + f.name;
+  const u = URL.createObjectURL(f), im = new Image();
+  im.onload = () => {
+    try {
+      const p = extract(im);
+      if (p) { while (p.length < 3) p.push(mix(p[p.length - 1], [255, 255, 255], .2).map(Math.round)); S.pal = p; }
+    } catch (e) { console.error(e); }
+    Object.assign(S, { pi: 0, scheme: 0, custom: "" });
+    URL.revokeObjectURL(AV.url);
+    Object.assign(AV, { img: im, url: u, cx: im.width / 2, cy: im.height / 2 });
+    $("#avEmpty").hidden = true; $("#avBox").hidden = false;
+    $("#pvAv").style.backgroundImage = `url(${u})`;
+    setZ(1); render();
   };
-
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("input", updateAll);
-  });
-
-  document.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-    checkbox.addEventListener("change", updateAll);
-  });
-
-  const focalX = document.getElementById("focalX");
-  const focalY = document.getElementById("focalY");
-  const focalZoomElem = document.getElementById("focalZoom");
-
-  if (focalX) focalX.addEventListener("input", actualizarPuntoDesdeSliders);
-  if (focalY) focalY.addEventListener("input", actualizarPuntoDesdeSliders);
-  if (focalZoomElem)
-    focalZoomElem.addEventListener("input", actualizarPuntoDesdeSliders);
+  im.onerror = () => toast("No se pudo leer la imagen");
+  im.src = u;
+}
+function drawAv(cv = $("#cv"), n = cv.width) {
+  const { img, z } = AV; if (!img) return;
+  const cs = Math.min(img.width, img.height) / z;
+  AV.cx = Math.max(cs / 2, Math.min(img.width - cs / 2, AV.cx));
+  AV.cy = Math.max(cs / 2, Math.min(img.height - cs / 2, AV.cy));
+  const x = cv.getContext("2d"); x.clearRect(0, 0, n, n); x.save(); x.beginPath();
+  x.roundRect(0, 0, n, n, S.shape === "circle" ? n / 2 : S.shape === "rounded" ? n * .22 : 0); x.clip();
+  x.drawImage(img, AV.cx - cs / 2, AV.cy - cs / 2, cs, cs, 0, 0, n, n); x.restore();
+}
+function setZ(z) {
+  AV.z = Math.max(1, Math.min(4, z));
+  $("#zoom").value = AV.z * 100; $("#zv").textContent = AV.z.toFixed(1) + "x"; drawAv();
 }
 
-window.addEventListener("DOMContentLoaded", () => {
-  inicializarCargaGlobal();
-  inicializarFocalEvents();
-  inicializarListeners();
-
-  cargarDesdeLocalStorage();
-  procesarPaleta();
+/* ---------- acciones ---------- */
+const ACT = {
+  pick: () => $("#img").click(),
+  import: () => $("#impIn").click(),
+  export: () => save("css-discord-config.json", JSON.stringify(S, null, 2), "application/json"),
+  reset: () => { if (confirm("¿Restablecer toda la configuración?")) { S = { ...DEF }; syncUI(); render(); } },
+  dl: () => save(...OUT[tab]),
+  copy: () => copy(OUT[tab][1]).then(() => toast("Código copiado")),
+  hx: (b) => copy(b.textContent).then(() => toast("Copiado " + b.textContent)),
+  c3: () => copy(enc3y3(`[${prof()}]`)).then(() => toast("Código 3y3 copiado")),
+  avreset: () => { if (AV.img) { AV.cx = AV.img.width / 2; AV.cy = AV.img.height / 2; setZ(1); } },
+  avdl: () => {
+    if (!AV.img) return toast("Primero subí una imagen");
+    const c = document.createElement("canvas"); c.width = c.height = +S.size; drawAv(c, c.width);
+    c.toBlob((bl) => save(`avatar-${S.size}.png`, bl));
+  },
+};
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-s],[data-i],[data-prof],[data-tab],[data-act]"); if (!b) return;
+  const d = b.dataset;
+  if (d.s !== undefined) { S.scheme = +d.s; S.custom = ""; }
+  else if (d.i !== undefined) { S.pi = +d.i; S.scheme = 0; S.custom = ""; }
+  else if (d.prof !== undefined) S.prof = +d.prof;
+  else if (d.tab) tab = d.tab;
+  else return ACT[d.act](b);
+  render();
 });
+document.addEventListener("input", (e) => {
+  const el = e.target, k = el.dataset && el.dataset.k; if (!k) return;
+  S[k] = el.type === "checkbox" ? +el.checked : el.type === "range" ? +el.value : el.value;
+  if (k === "p1" || k === "p2") S.prof = 3;
+  const l = $("#v_" + k); if (l) l.textContent = S[k] + el.dataset.u;
+  if (AV.img) drawAv();
+  render();
+});
+$("#img").addEventListener("change", (e) => onFile(e.target.files[0]));
+$("#impIn").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  try { S = fix({ ...DEF, ...JSON.parse(await f.text()) }); syncUI(); render(); toast("Config importada"); } catch { toast("Archivo inválido"); }
+});
+$("#zoom").addEventListener("input", (e) => setZ(e.target.value / 100));
+document.addEventListener("paste", (e) => { const f = e.clipboardData && e.clipboardData.files[0]; if (f) onFile(f); });
+const dz = $("#drop");
+["dragenter", "dragover"].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.add("hl"); }));
+["dragleave", "drop"].forEach((t) => dz.addEventListener(t, (e) => { e.preventDefault(); dz.classList.remove("hl"); if (t === "drop") onFile(e.dataTransfer.files[0]); }));
+const cv = $("#cv"); let drag = null;
+cv.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; cv.setPointerCapture(e.pointerId); });
+cv.addEventListener("pointermove", (e) => {
+  if (!drag || !AV.img) return;
+  const k = Math.min(AV.img.width, AV.img.height) / AV.z / cv.clientWidth;
+  AV.cx -= (e.clientX - drag[0]) * k; AV.cy -= (e.clientY - drag[1]) * k; drag = [e.clientX, e.clientY]; drawAv();
+});
+["pointerup", "pointercancel"].forEach((t) => cv.addEventListener(t, () => (drag = null)));
+cv.addEventListener("wheel", (e) => { e.preventDefault(); setZ(AV.z * (e.deltaY < 0 ? 1.1 : .9)); }, { passive: false });
+
+/* ---------- init ---------- */
+$("#schemes").innerHTML = SCHEMES.map((s, i) => `<button class="sch" data-s="${i}"><span class="sd">${s[1] ? `<i style="background:${s[1]}"></i><i style="background:${s[2]}"></i>` : '<i style="background:linear-gradient(135deg,#f66,#6af,#6f9)"></i>'}</span>${s[0]}</button>`).join("");
+$("#themeUI").innerHTML = THEME_UI.map(ctl).join("");
+$("#quickUI").innerHTML = QUICK_UI.map(ctl).join("");
+syncUI(); update();
