@@ -11,168 +11,138 @@
 <body>
 <div class="bg"><i></i><i></i><i></i></div>
 
-<nav class="dock" aria-label="Ventanas">
-  <b class="logo">CSS.DISCORD</b>
-  <div class="dk">
-    <button data-w="temas" data-tip="Temas|Elegi el tema base, los colores y la fuente.">Temas</button>
-    <button data-w="colores" data-tip="Colores|Saca la paleta de tu imagen o elegi un color a mano.">Colores</button>
-    <button data-w="quick" data-tip="QuickCSS|Arreglitos extra para pegar en el QuickCSS de tu cliente.|display: none;|quick">QuickCSS</button>
-    <button data-w="preview">Vista previa</button>
-    <button data-w="codigo">Codigo</button>
-    <button data-w="perfil" data-tip="Perfil 3y3|Codigo de colores para FakeProfileThemes.||3y3">Perfil</button>
-    <button data-w="avatar">Avatar</button>
-    <button data-w="historial">Historial</button>
-    <button data-w="ajustes">Ajustes</button>
-    <button data-w="ayuda">Ayuda</button>
-  </div>
-</nav>
-
 <main class="stage">
-  <div class="drop" id="drop">
-    <h1>CSS.DISCORD</h1>
-    <p class="mu">Pagina de uso personal para configurar cositas de discord</p>
-    <button class="pri" data-act="pick">Subir imagen para comenzar a editar</button>
-    <input type="file" id="img" accept="image/*" hidden>
-    <span class="mu" id="upStatus">Ninguna imagen cargada</span>
-  </div>
+  <section class="main" id="drop" aria-label="CSS.DISCORD">
+    <header class="mh">
+      <button class="ar" data-act="prev" aria-label="Pagina anterior">‹</button>
+      <div class="mt"><b id="ptitle"></b><small id="pcount"></small></div>
+      <button class="ar" data-act="next" aria-label="Pagina siguiente">›</button>
+    </header>
+    <div class="dots" id="dots"></div>
+
+    <div class="pvbox" id="pvbox" hidden>
+      <div class="pv" id="pv">
+        <div class="pv-s" data-tip="Barra lateral|Usa el color secundario del tema.|--bg-3: #0a0e19;"># general<br># memes<br># bots</div>
+        <div class="pv-m" data-tip="Chat|Fondo principal, sale de --bg-1.">
+          <p class="pv-men" data-tip="Mencion|Se controla con Color en menciones (QuickCSS > Chat)">@user mira este <a data-tip="Links|Brillo y color con Efecto brillo en links">link</a></p>
+          <p>mensaje normal</p>
+        </div>
+        <div class="pv-u">
+          <span class="av" id="pvAv" data-tip="Avatar|Las esquinas salen de Bordes suavizados"></span>
+          <span>User<br><small>Estado de ejemplo</small></span>
+          <span>🎙️ 🎧 ⚙️</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="body" id="body">
+
+      <div class="pg" hidden>
+        <div class="hero">
+          <h1>CSS.DISCORD</h1>
+          <p class="mu">Pagina de uso personal para configurar cositas de discord</p>
+          <button class="pri" data-act="pick">Subir imagen para comenzar a editar</button>
+          <input type="file" id="img" accept="image/*" hidden>
+          <span class="mu" id="upStatus">Ninguna imagen cargada</span>
+          <span class="mu">tambien podes arrastrarla o pegarla con Ctrl+V</span>
+        </div>
+      </div>
+
+      <div class="pg" hidden>
+        <input type="search" id="sq" placeholder="buscar tema..." aria-label="Buscar tema">
+        <div class="schemes" id="schemes"></div>
+        <div class="ctls" id="themeUI"></div>
+      </div>
+
+      <div class="pg" hidden>
+        <div class="empty" id="pkEmpty"><span class="q">?</span><button data-act="pick">Subir imagen para comenzar a editar</button></div>
+        <div id="pkWrap" hidden class="ctls">
+          <span class="mu">Toca la imagen para sacar un color exacto</span>
+          <canvas id="pk"></canvas>
+        </div>
+        <span class="mu">Colores de la imagen</span>
+        <div class="pals" id="pal"></div>
+        <label class="row"><span>Acento personalizado</span><input type="color" id="cc" data-k="custom"></label>
+        <button data-act="hsave">Guardar en el historial</button>
+      </div>
+
+      <div class="pg" hidden>
+        <div class="tabs" id="qtabs"></div>
+        <div class="ctls" id="quickUI"></div>
+      </div>
+
+      <div class="pg" hidden>
+        <div class="tabs">
+          <button data-tab="uni">Tema + QuickCSS</button>
+          <button data-tab="theme">Solo tema</button>
+          <button data-tab="quick">Solo QuickCSS</button>
+        </div>
+        <textarea id="out" readonly aria-label="Codigo generado"></textarea>
+        <div class="bar"><button class="pri" data-act="dl">Descargar</button><button data-act="copy">Copiar</button></div>
+      </div>
+
+      <div class="pg" hidden>
+        <div class="tabs">
+          <button data-prof="0">Mezcla 1</button><button data-prof="1">Mezcla 2</button>
+          <button data-prof="2">Mezcla 3</button><button data-prof="3">Manual</button>
+        </div>
+        <div class="bars">
+          <button id="b1" data-act="hx" title="Copiar color"></button>
+          <button id="b2" data-act="hx" title="Copiar color"></button>
+        </div>
+        <div class="row"><span>Colores manuales</span><span><input type="color" data-k="p1"> <input type="color" data-k="p2"></span></div>
+        <button class="pri" data-act="c3">Copiar codigo 3y3</button>
+      </div>
+
+      <div class="pg" hidden>
+        <div class="empty" id="avEmpty"><span class="q">?</span><button data-act="pick">Subir imagen para comenzar a editar</button></div>
+        <div id="avBox" hidden>
+          <canvas id="cv" width="400" height="400"></canvas>
+          <p class="mu">Arrastra para mover, rueda para zoom</p>
+          <div class="col"><label class="row" for="zoom"><span>Zoom</span><b id="zv">1.0x</b></label><input type="range" id="zoom" min="100" max="400" value="100"></div>
+          <label class="row"><span>Forma</span><select data-k="shape"><option value="circle">Circulo</option><option value="rounded">Redondeado</option><option value="square">Cuadrado</option></select></label>
+          <label class="row"><span>Tamaño (px)</span><select data-k="size"><option>128</option><option>256</option><option>512</option><option>1024</option></select></label>
+          <div class="bar"><button class="pri" data-act="avdl">Descargar PNG</button><button data-act="avreset">↺ Reset</button></div>
+        </div>
+      </div>
+
+      <div class="pg" hidden>
+        <button data-act="hsave">Guardar tema actual</button>
+        <div id="hist"></div>
+        <button data-act="hmore" id="hmore" hidden></button>
+      </div>
+
+      <div class="pg" hidden>
+        <span class="mu">Tema de la pagina</span>
+        <div class="pgs" id="pgs"></div>
+        <div class="bar">
+          <button class="sm" data-act="mode" aria-label="Cambiar claro/oscuro"><span class="sun">☀️</span><span class="moon">🌙</span></button>
+          <button data-act="rand">Aleatorio</button>
+        </div>
+        <div class="ctls" id="setUI"></div>
+        <div class="bar">
+          <button data-act="tour">Ver tour</button>
+          <button data-act="export">Exportar config</button>
+          <button data-act="import">Importar</button>
+          <button data-act="reset">Reset</button>
+          <input type="file" id="impIn" accept="application/json" hidden>
+        </div>
+      </div>
+
+      <div class="pg help" hidden>
+        <h3 id="h-uso">Como se usa</h3>
+        <ol><li>Subi una imagen o elegi un tema.</li><li>Ajusta lo que quieras.</li><li>Copia el codigo y pegalo en tu cliente (Vencord, BetterDiscord).</li></ol>
+        <h3 id="h-base">Tema base</h3>
+        <p>system24 y midnight se importan desde github, asi que necesitas internet para que carguen.</p>
+        <h3 id="h-quick">QuickCSS</h3>
+        <p>Son cambios extra. Pegalos en el apartado de QuickCSS de tu cliente, o descarga todo unificado.</p>
+        <h3 id="h-3y3">3y3 (FakeProfileThemes)</h3>
+        <p>Es un codigo de colores para el plugin FakeProfileThemes. Lo copias, lo pegas en tu bio y el perfil cambia de color para quien tenga el plugin.</p>
+      </div>
+
+    </div>
+  </section>
 </main>
-
-<section class="win" id="w-temas" hidden>
-  <header class="wh"><span>Temas</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <input type="search" id="sq" placeholder="buscar tema..." aria-label="Buscar tema">
-    <div class="schemes" id="schemes"></div>
-    <div class="ctls" id="themeUI"></div>
-  </div>
-</section>
-
-<section class="win" id="w-colores" hidden>
-  <header class="wh"><span>Colores</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <div class="empty" id="pkEmpty"><span class="q">?</span><button data-act="pick">Subir imagen</button></div>
-    <div id="pkWrap" hidden class="ctls">
-      <span class="mu">Toca la imagen para sacar un color exacto</span>
-      <canvas id="pk"></canvas>
-    </div>
-    <span class="mu">Colores de la imagen</span>
-    <div class="pals" id="pal"></div>
-    <label class="row"><span>Acento personalizado</span><input type="color" id="cc" data-k="custom"></label>
-    <button data-act="hsave">Guardar en el historial</button>
-  </div>
-</section>
-
-<section class="win" id="w-quick" hidden>
-  <header class="wh"><span>QuickCSS</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <div class="tabs" id="qtabs"></div>
-    <div class="ctls" id="quickUI"></div>
-  </div>
-</section>
-
-<section class="win" id="w-preview" hidden>
-  <header class="wh"><span>Vista previa</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <div class="pv" id="pv">
-      <div class="pv-s" data-tip="Barra lateral|Usa el color secundario del tema.|--bg-3: #0a0e19;"># general<br># memes<br># bots</div>
-      <div class="pv-m" data-tip="Chat|Fondo principal, sale de --bg-1.">
-        <p class="pv-men" data-tip="Mencion|Se controla con Color en menciones (QuickCSS > Chat)">@user mira este <a data-tip="Links|Brillo y color con Efecto brillo en links">link</a></p>
-        <p>mensaje normal</p>
-      </div>
-      <div class="pv-u">
-        <span class="av" id="pvAv" data-tip="Avatar|Las esquinas salen de Bordes suavizados"></span>
-        <span>User<br><small>Estado de ejemplo</small></span>
-        <span>🎙️ 🎧 ⚙️</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="win" id="w-codigo" hidden>
-  <header class="wh"><span>Codigo</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <div class="tabs">
-      <button data-tab="uni">Tema + QuickCSS</button>
-      <button data-tab="theme">Solo tema</button>
-      <button data-tab="quick">Solo QuickCSS</button>
-    </div>
-    <textarea id="out" readonly aria-label="Codigo generado"></textarea>
-    <div class="bar"><button class="pri" data-act="dl">Descargar</button><button data-act="copy">Copiar</button></div>
-  </div>
-</section>
-
-<section class="win" id="w-perfil" hidden>
-  <header class="wh"><span>Perfil 3y3</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <div class="tabs">
-      <button data-prof="0">Mezcla 1</button><button data-prof="1">Mezcla 2</button>
-      <button data-prof="2">Mezcla 3</button><button data-prof="3">Manual</button>
-    </div>
-    <div class="bars">
-      <button id="b1" data-act="hx" title="Copiar color"></button>
-      <button id="b2" data-act="hx" title="Copiar color"></button>
-    </div>
-    <div class="row"><span>Colores manuales</span><span><input type="color" data-k="p1"> <input type="color" data-k="p2"></span></div>
-    <button class="pri" data-act="c3">Copiar codigo 3y3</button>
-  </div>
-</section>
-
-<section class="win" id="w-avatar" hidden>
-  <header class="wh"><span>Avatar</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <div class="empty" id="avEmpty"><span class="q">?</span><button data-act="pick">Subir imagen para comenzar a editar</button></div>
-    <div id="avBox" hidden>
-      <canvas id="cv" width="400" height="400"></canvas>
-      <p class="mu">Arrastra para mover, rueda para zoom</p>
-      <div class="col"><label class="row" for="zoom"><span>Zoom</span><b id="zv">1.0x</b></label><input type="range" id="zoom" min="100" max="400" value="100"></div>
-      <label class="row"><span>Forma</span><select data-k="shape"><option value="circle">Circulo</option><option value="rounded">Redondeado</option><option value="square">Cuadrado</option></select></label>
-      <label class="row"><span>Tamaño (px)</span><select data-k="size"><option>128</option><option>256</option><option>512</option><option>1024</option></select></label>
-      <div class="bar"><button class="pri" data-act="avdl">Descargar PNG</button><button data-act="avreset">↺ Reset</button></div>
-    </div>
-  </div>
-</section>
-
-<section class="win" id="w-historial" hidden>
-  <header class="wh"><span>Historial</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <button data-act="hsave">Guardar tema actual</button>
-    <div id="hist"></div>
-    <button data-act="hmore" id="hmore" hidden></button>
-  </div>
-</section>
-
-<section class="win" id="w-ajustes" hidden>
-  <header class="wh"><span>Ajustes</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb">
-    <span class="mu">Tema de la pagina</span>
-    <div class="pgs" id="pgs"></div>
-    <div class="bar">
-      <button class="sm" data-act="mode" aria-label="Cambiar claro/oscuro"><span class="sun">☀️</span><span class="moon">🌙</span></button>
-      <button data-act="rand">Aleatorio</button>
-    </div>
-    <div class="ctls" id="setUI"></div>
-    <div class="bar">
-      <button data-act="tour">Ver tour</button>
-      <button data-act="export">Exportar config</button>
-      <button data-act="import">Importar</button>
-      <button data-act="reset">Reset</button>
-      <input type="file" id="impIn" accept="application/json" hidden>
-    </div>
-  </div>
-</section>
-
-<section class="win" id="w-ayuda" hidden>
-  <header class="wh"><span>Ayuda</span><button class="x" data-close aria-label="Cerrar">×</button></header>
-  <div class="wb help">
-    <h3 id="h-uso">Como se usa</h3>
-    <ol><li>Subi una imagen o elegi un tema.</li><li>Ajusta lo que quieras.</li><li>Copia el codigo y pegalo en tu cliente (Vencord, BetterDiscord).</li></ol>
-    <h3 id="h-base">Tema base</h3>
-    <p>system24 y midnight se importan desde github, asi que necesitas internet para que carguen.</p>
-    <h3 id="h-quick">QuickCSS</h3>
-    <p>Son cambios extra. Pegalos en el apartado de QuickCSS de tu cliente, o descarga todo unificado.</p>
-    <h3 id="h-3y3">3y3 (FakeProfileThemes)</h3>
-    <p>Es un codigo de colores para el plugin FakeProfileThemes. Lo copias, lo pegas en tu bio y el perfil cambia de color para quien tenga el plugin.</p>
-  </div>
-</section>
 
 <div id="tip" role="tooltip"></div>
 <div id="toasts" role="status" aria-live="polite"></div>

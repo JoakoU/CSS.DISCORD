@@ -33,7 +33,8 @@ const PG = [
   ["menta", "Menta", 0, "#e6f4ee", "#f7fcf9", "#14301f", "#4f7a63", "#bfe0cf"],
   ["neon", "Neon", 1, "#0b0620", "#150b33", "#ffe9fb", "#c79bd9", "#4a1d7a", 1],
 ];
-const PAGE = ["pg", "sync", "bgfx", "snd", "conf", "tipd", "hmax", "wins", "secret"];
+const PAGES = [["inicio", "Inicio"], ["temas", "Temas"], ["colores", "Colores"], ["quick", "QuickCSS"], ["codigo", "Codigo"], ["perfil", "Perfil 3y3"], ["avatar", "Avatar"], ["historial", "Historial"], ["ajustes", "Ajustes"], ["ayuda", "Ayuda"]];
+const PAGE = ["pg", "sync", "bgfx", "snd", "conf", "tipd", "hmax", "pageN", "secret"];
 const DEF = {
   base: "system24", scheme: 1, pal: [[157, 124, 214], [192, 202, 245], [187, 154, 247], [137, 180, 250], [245, 194, 231]], pi: 0, custom: "",
   font: "DM Mono", radius: 5, opacity: 85, gap: 12, border: 2, bgurl: "", blur: 1, trans: 1, small: 1, labels: 1, anim: 1,
@@ -42,7 +43,7 @@ const DEF = {
   ment: 1, glow: 1, glowR: 8, glowO: 100, hov: 0, emb: 0, react: 0, fsz: 0, fsize: 15, inputglow: 0,
   scroll: 1, sel: 1, extra: "",
   prof: 0, p1: "#121017", p2: "#9d7cd6", shape: "circle", size: "512",
-  pg: "medianoche", sync: 0, bgfx: 1, snd: 0, conf: 1, tipd: 250, hmax: 6, wins: {}, secret: 0,
+  pg: "medianoche", sync: 0, bgfx: 1, snd: 0, conf: 1, tipd: 250, hmax: 6, pageN: 0, secret: 0,
 };
 // controles: t = tgl | rng | sel | txt | txt1 | area ; c = categoria ; dep = depende de otro toggle ; tip = "titulo|desc|codigo|ayuda"
 const THEME_UI = [
@@ -95,7 +96,8 @@ const fix = (s) => {
   if (!SCHEMES[s.scheme]) s.scheme = 1;
   if (!BASES[s.base]) s.base = DEF.base;
   if (!PG.some((p) => p[0] === s.pg)) s.pg = DEF.pg;
-  if (!s.wins || typeof s.wins !== "object") s.wins = {};
+  s.pageN = Math.max(0, Math.min(PAGES.length - 1, parseInt(s.pageN) || 0));
+  delete s.wins;
   delete s._h;
   return s;
 };
@@ -110,7 +112,6 @@ const hex = (r, g, b) => "#" + [r, g, b].map((v) => clamp(v).toString(16).padSta
 const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const onCol = (c) => (.299 * c[0] + .587 * c[1] + .114 * c[2] > 150 ? "#0d0a14" : "#fff");
-const win = (id) => $("#w-" + id);
 const copy = async (s) => {
   try { await navigator.clipboard.writeText(s); } catch {
     const t = document.createElement("textarea"); t.value = s; document.body.append(t); t.select(); document.execCommand("copy"); t.remove();
@@ -145,6 +146,8 @@ function confetti() {
     document.body.append(p); setTimeout(() => p.remove(), 900);
   }
 }
+addEventListener("error", (e) => toast("Error: " + e.message, "warn"));
+addEventListener("unhandledrejection", (e) => toast("Error: " + ((e.reason && e.reason.message) || e.reason), "warn"));
 const cp = async (txt, msg, kind = "code", big = false) => { await copy(txt); toast(msg, kind); if (big) confetti(); };
 
 /* ---------- paleta en OKLab ---------- */
@@ -352,7 +355,7 @@ function applyPage() {
 function vis() {
   $$("[data-cat]").forEach((e) => (e.hidden = e.dataset.cat !== qcat || !!(e.dataset.dep && !S[e.dataset.dep])));
   $$("[data-qc]").forEach((b) => b.classList.toggle("on", b.dataset.qc === qcat));
-  $$("[data-w]").forEach((b) => b.classList.toggle("on", !win(b.dataset.w).hidden));
+  $$("[data-pn]").forEach((b) => b.classList.toggle("on", +b.dataset.pn === S.pageN));
   $$("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === tab));
   $$("[data-s]").forEach((b) => b.classList.toggle("on", +b.dataset.s === S.scheme));
   $$("[data-prof]").forEach((b) => b.classList.toggle("on", +b.dataset.prof === S.prof));
@@ -370,47 +373,20 @@ function update() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch {}
 }
 
-/* ---------- ventanas flotantes ---------- */
-const DEFOPEN = ["temas", "preview", "codigo"];
-let zt = 20;
-const front = (w) => (w.style.zIndex = ++zt);
-function defPos(id) {
-  if (id === "temas") return [24, 76];
-  if (id === "preview") return [Math.max(24, innerWidth - 400), 76];
-  if (id === "codigo") return [Math.max(24, innerWidth - 400), 420];
-  const n = $$(".win:not([hidden])").length % 6; return [60 + n * 34, 90 + n * 30];
+/* ---------- paginas (una ventana, flechas para cambiar) ---------- */
+const PV_PAGES = ["temas", "colores", "quick"];
+function go(n, dir) {
+  n = (n + PAGES.length) % PAGES.length; dir = dir || (n > S.pageN ? 1 : -1); S.pageN = n;
+  $$(".pg").forEach((p, i) => {
+    p.hidden = i !== n; p.classList.remove("l", "r");
+    if (i === n) { void p.offsetWidth; p.classList.add(dir > 0 ? "r" : "l"); }
+  });
+  const id = PAGES[n][0];
+  $("#ptitle").textContent = PAGES[n][1]; $("#pcount").textContent = `${n + 1}/${PAGES.length}`;
+  $("#pvbox").hidden = !PV_PAGES.includes(id); $("#body").scrollTop = 0;
+  if (id === "historial") renderHist();
+  render();
 }
-function openW(id, on = true) {
-  const w = win(id); if (!w) return;
-  if (on) {
-    w.hidden = false;
-    if (innerWidth < 800) $$(".win").forEach((x) => { if (x !== w) x.hidden = true; });
-    if (!w.style.left) {
-      const p = S.wins[id] && S.wins[id][0] != null ? S.wins[id] : defPos(id);
-      w.style.left = Math.max(0, Math.min(p[0], innerWidth - 120)) + "px"; w.style.top = Math.max(52, Math.min(p[1], innerHeight - 80)) + "px";
-    }
-    front(w); if (id === "historial") renderHist();
-  } else w.hidden = true;
-  S.wins[id] = [parseInt(w.style.left) || 0, parseInt(w.style.top) || 0, on ? 1 : 0]; render();
-}
-function initWins() {
-  const first = !Object.keys(S.wins).length;
-  $$(".win").forEach((w) => { const id = w.id.slice(2), p = S.wins[id]; if (first ? DEFOPEN.includes(id) : p && p[2]) openW(id); });
-}
-let dg = null;
-document.addEventListener("pointerdown", (e) => {
-  const w = e.target.closest(".win"); if (w) front(w);
-  const h = e.target.closest(".wh"); if (!h || e.target.closest("button") || innerWidth < 800) return;
-  const r = w.getBoundingClientRect(); dg = { w, dx: e.clientX - r.left, dy: e.clientY - r.top }; h.setPointerCapture(e.pointerId);
-});
-document.addEventListener("pointermove", (e) => {
-  if (!dg) return;
-  dg.w.style.left = Math.max(-200, Math.min(innerWidth - 90, e.clientX - dg.dx)) + "px"; dg.w.style.top = Math.max(52, Math.min(innerHeight - 40, e.clientY - dg.dy)) + "px";
-});
-document.addEventListener("pointerup", () => {
-  if (!dg) return; const w = dg.w; dg = null;
-  S.wins[w.id.slice(2)] = [parseInt(w.style.left), parseInt(w.style.top), 1]; render();
-});
 
 /* ---------- tooltips ---------- */
 const tip = $("#tip"); let tto, thide, cur = null;
@@ -435,23 +411,25 @@ document.addEventListener("pointerout", (e) => {
 tip.addEventListener("pointerenter", () => clearTimeout(thide));
 tip.addEventListener("pointerleave", () => { tip.classList.remove("on"); cur = null; });
 
-/* ---------- tour ---------- */
+/* ---------- tour (no bloquea la pagina) ---------- */
 const TOUR = [
-  ["#drop", "Sube una imagen aca y saco los colores solos", null],
-  ["[data-w=temas]", "Desde esta barra abris las ventanas. Arrastralas donde quieras", "temas"],
-  ["#w-preview", "Aca ves como queda, se actualiza en vivo", "preview"],
-  ["#w-codigo", "Y aca copias o descargas el codigo", "codigo"],
+  ["[data-act=pick]", "Sube una imagen aca y saco los colores solos", 0],
+  ["[data-act=next]", "Con las flechas pasas de pagina", null],
+  ["#pvbox", "Aca ves como queda, se actualiza en vivo", 1],
+  ["#out", "Y aca copias o descargas el codigo", 4],
 ];
-let ts = 0;
+let ts = 0, tt2;
 function tour(i) {
-  ts = i; const o = $("#tour");
+  ts = i; const o = $("#tour"); clearTimeout(tt2);
   if (i >= TOUR.length) { o.hidden = true; try { localStorage.setItem(TK, "1"); } catch {} return; }
-  const [sel, txt, w] = TOUR[i]; if (w) openW(w);
-  const r = $(sel).getBoundingClientRect(), sp = $("#spot").style, tb = $("#tb").style;
-  sp.left = r.left - 6 + "px"; sp.top = r.top - 6 + "px"; sp.width = r.width + 12 + "px"; sp.height = r.height + 12 + "px";
-  $("#tt").textContent = `${i + 1}/${TOUR.length}  ${txt}`; $("#tn").textContent = i === TOUR.length - 1 ? "Listo" : "Siguiente";
-  tb.left = Math.max(12, Math.min(innerWidth - 300, r.left)) + "px";
-  tb.top = (r.bottom + 170 > innerHeight ? Math.max(12, r.top - 150) : r.bottom + 16) + "px"; o.hidden = false;
+  const [sel, txt, pg] = TOUR[i]; if (pg !== null) go(pg, 1);
+  $("#tt").textContent = `${i + 1}/${TOUR.length}  ${txt}`; $("#tn").textContent = i === TOUR.length - 1 ? "Listo" : "Siguiente"; o.hidden = false;
+  tt2 = setTimeout(() => {
+    const el = $(sel); if (!el) return; const r = el.getBoundingClientRect(), sp = $("#spot").style, tb = $("#tb").style;
+    sp.left = r.left - 6 + "px"; sp.top = r.top - 6 + "px"; sp.width = r.width + 12 + "px"; sp.height = r.height + 12 + "px";
+    tb.left = Math.max(12, Math.min(innerWidth - 292, r.left)) + "px";
+    tb.top = Math.max(12, r.bottom + 170 > innerHeight ? r.top - 150 : r.bottom + 16) + "px";
+  }, 360);
 }
 
 /* ---------- secreto ---------- */
@@ -480,7 +458,7 @@ function onFile(f) {
     URL.revokeObjectURL(AV.url); Object.assign(AV, { img: im, url: u, cx: im.width / 2, cy: im.height / 2 });
     $("#avEmpty").hidden = $("#pkEmpty").hidden = true; $("#avBox").hidden = $("#pkWrap").hidden = false;
     pkDraw(); $("#pvAv").style.backgroundImage = `url(${u})`;
-    setZ(1); openW("colores"); addHist(); render();
+    setZ(1); addHist(); go(2, 1);
   };
   im.onerror = () => toast("No se pudo leer la imagen", "warn");
   im.src = u;
@@ -520,7 +498,7 @@ const ACT = {
   pick: () => $("#img").click(),
   import: () => $("#impIn").click(),
   export: () => save("css-discord-config.json", JSON.stringify({ ...S, _h: H }, null, 2), "application/json"),
-  reset: () => { if (confirm("Restablecer todo?")) { S = fix({ ...DEF, wins: S.wins, secret: S.secret }); syncUI(); render(); } },
+  reset: () => { if (confirm("Restablecer todo?")) { S = fix({ ...DEF, pageN: S.pageN, secret: S.secret }); syncUI(); render(); } },
   dl: () => save(...OUT[tab]),
   copy: () => cp(OUT[tab][1], "Codigo copiado", "code", tab === "uni"),
   hx: (b) => cp(b.textContent, "Copiado!", "color"),
@@ -537,10 +515,11 @@ const ACT = {
   hrm: (b) => { H = H.filter((x) => x.id !== b.dataset.id); saveH(); renderHist(); },
   mode: () => { const cur = PG.find((x) => x[0] === S.pg), t = PG.find((x) => x[2] !== cur[2] && !x[8]); S.pg = t[0]; render(); },
   rand: () => { const L = PG.filter((x) => (!x[8] || S.secret) && x[0] !== S.pg); S.pg = L[(Math.random() * L.length) | 0][0]; render(); },
+  prev: () => go(S.pageN - 1, -1), next: () => go(S.pageN + 1, 1),
   tour: () => tour(0), tnext: () => tour(ts + 1), tskip: () => tour(99),
 };
 document.addEventListener("click", (e) => {
-  const b = e.target.closest("[data-s],[data-i],[data-prof],[data-tab],[data-qc],[data-w],[data-go],[data-pg],[data-close],[data-act]"); if (!b) return;
+  const b = e.target.closest("[data-s],[data-i],[data-prof],[data-tab],[data-qc],[data-pn],[data-go],[data-pg],[data-act]"); if (!b) return;
   const d = b.dataset;
   if (d.s !== undefined) { S.scheme = +d.s; S.custom = ""; }
   else if (d.i !== undefined) { S.pi = +d.i; S.scheme = 0; S.custom = ""; }
@@ -548,9 +527,8 @@ document.addEventListener("click", (e) => {
   else if (d.tab) tab = d.tab;
   else if (d.qc) qcat = d.qc;
   else if (d.pg) S.pg = d.pg;
-  else if (d.w) return openW(d.w, win(d.w).hidden);
-  else if (d.close !== undefined) return openW(b.closest(".win").id.slice(2), false);
-  else if (d.go) { openW("ayuda"); const h = $("#h-" + d.go); if (h) h.scrollIntoView({ behavior: "smooth" }); tip.classList.remove("on"); return; }
+  else if (d.pn !== undefined) return go(+d.pn);
+  else if (d.go) { go(PAGES.length - 1, 1); setTimeout(() => { const h = $("#h-" + d.go); if (h) h.scrollIntoView({ behavior: "smooth" }); }, 340); tip.classList.remove("on"); return; }
   else return ACT[d.act](b);
   render();
 });
@@ -587,5 +565,6 @@ $("#themeUI").innerHTML = THEME_UI.map(ctl).join("");
 $("#quickUI").innerHTML = QUICK_UI.map(ctl).join("");
 $("#setUI").innerHTML = SET_UI.map(ctl).join("");
 $("#qtabs").innerHTML = QCATS.map((c) => `<button data-qc="${c}">${c}</button>`).join("");
-syncUI(); initWins(); update(); renderHist();
+$("#dots").innerHTML = PAGES.map((p, i) => `<button class="dot" data-pn="${i}" data-tip="${p[1]}" aria-label="${p[1]}"></button>`).join("");
+syncUI(); go(S.pageN, 1); update(); renderHist();
 try { if (!localStorage.getItem(TK)) setTimeout(() => tour(0), 700); } catch {}
